@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Extraction Tool</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 30px;
+        }
+        .container {
+            max-width: 600px;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        .form-group label {
+            font-weight: bold;
+        }
+        .btn-custom {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        .btn-custom:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            white-space: pre-wrap; /* Preserve whitespace for result display */
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Invoice Extraction Tool</h1>
+        <form action="/" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">Upload PDF:</label>
+                <input type="file" name="file" class="form-control-file" required>
+            </div>
+
+            <div class="form-group">
+                <label for="option">Select the Invoice Type:</label>
+                <select name="option" class="form-control" required>
+                    <option value="1">Le Chef Bakery</option>
+                    <option value="2">Nature's Produce Online</option>
+                    <option value="3">Nature's Produce</option>
+                    <option value="4">Santa Monica Seafood</option>
+                    <option value="5">US Foods</option>
+                    <option value="6">West Coast Prime Meats</option>
+                    <option value="7">Individual Food Service</option>
+                    <option value="8">Imperial Dade</option>
+                    <option value="9">Melrose Baking Company</option>
+                    <option value="10">Rockenwagner Bakery</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-custom btn-block">Extract</button>
+        </form>
+
+        {% if result %}
+        <div class="results mt-4">
+            <h3>Extraction Results:</h3>
+            <pre>{{ result }}</pre>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
