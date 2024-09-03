@@ -1,6 +1,7 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 import os
+import pandas as pd
 
 # Import your functions here
 from pyt import leChef1, natures_online, natures, santaMonica, usf, wcPrime, ifs, iD, mbc, rb
@@ -9,8 +10,14 @@ app = Flask(__name__)
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
+DOWNLOAD_FOLDER = 'downloads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
 ALLOWED_EXTENSIONS = {'pdf'}
+
+# Ensure the download folder exists
+if not os.path.exists(DOWNLOAD_FOLDER):
+    os.makedirs(DOWNLOAD_FOLDER)
 
 # Check if file type is allowed
 def allowed_file(filename):
@@ -52,12 +59,23 @@ def index():
                 result = rb(file_path)
             else:
                 result = "Invalid selection"
-            
-            return render_template('index.html', result=result)
+
+            # Save the result to an Excel file
+            excel_filename = f"{filename.rsplit('.', 1)[0]}_result.xlsx"
+            excel_path = os.path.join(app.config['DOWNLOAD_FOLDER'], excel_filename)
+            df = pd.DataFrame(result, columns=["Invoice No", "Net Amount", "Invoice Date"])
+            df.to_excel(excel_path, index=False)
+
+            # Display the result and the download link
+            return render_template('index.html', result=result, download_link=url_for('download_file', filename=excel_filename))
     
     return render_template('index.html')
+
+@app.route('/download/<filename>')
+def download_file(filename):
+    return send_from_directory(app.config['DOWNLOAD_FOLDER'], filename)
 
 if __name__ == "__main__":
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
-    app.run(port=5008,debug=True)
+    app.run(port=5008, debug=True)
