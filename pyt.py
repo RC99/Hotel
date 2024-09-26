@@ -152,7 +152,7 @@ def santaMonica(pdf_path):
     images = [preprocess_image(image) for image in images]
     invoice_details = []
 
-    invoice_no_pattern = r'Invoice\sNo[:\.\s]*(\d{7,})'
+    invoice_no_pattern = r'No[:\.\s]*(\d{7,})'
     net_amount_pattern = r'INVOICE\sTOTAL\s([\d,]+\.\d{2})'
     invoice_date_pattern = r'\b(\d{2}/\d{2}/\d{2})\b'
 
@@ -213,7 +213,7 @@ def wcPrime(pdf_path):
     invoice_details = []
 
     invoice_no_pattern = r'\b(\d{7})\b'
-    net_amount_pattern = r'\bInvoice\s*Total:\s*\$([\d,]+\.\d{2})\b'
+    net_amount_pattern = r'\$([\d,]+\.\d{2})'
     invoice_date_pattern = r'\bInvoice\s*Date:\s*(\d{2}/\d{2}/\d{4})\b'
 
     for image in images:
@@ -292,9 +292,10 @@ def extract_invoice_details(text):
 def iD(pdf_path):
     images = convert_from_path(pdf_path)
     images = [preprocess_image(image) for image in images]
-    invoice_nos = set()
-    net_amounts = set()
-    invoice_dates = set()
+    invoice_nos = []
+    net_amounts = []
+    invoice_dates = []
+    invoice_details = []
 
     net_amount_pattern = r'BALANCE DUE\s*([\d,]+\.\d{2})'
 
@@ -304,22 +305,20 @@ def iD(pdf_path):
         invoice_no, invoice_date = extract_invoice_details(text)
         
         if invoice_no:
-            invoice_nos.add(invoice_no)
+            invoice_nos.append(invoice_no)
         if invoice_date:
-            invoice_dates.add(invoice_date)
+            invoice_dates.append(invoice_date)
         
         net_amount_match = re.search(net_amount_pattern, text)
         if net_amount_match:
-            net_amounts.add(net_amount_match.group(1))
+            net_amounts.append(net_amount_match.group(1))
 
-    invoice_nos = list(invoice_nos) or ["Not found"]
-    net_amounts = list(net_amounts) or ["Not found"]
-    invoice_dates = list(invoice_dates) or ["Not found"]
-
-    invoice_details = [
-        {"Invoice No": invoice_no, "Invoice Date": invoice_date, "Net Amount": net_amount}
-        for invoice_no, invoice_date, net_amount in zip(invoice_nos, invoice_dates, net_amounts)
-    ]
+        for i, invoice_no in enumerate(invoice_nos):
+            net_amount = net_amounts[i] if i < len(net_amounts) else "Not found"
+            invoice_date = invoice_dates[i] if i < len(invoice_dates) else "Not found"
+            #print(i)
+            if (invoice_no, net_amount, invoice_date) not in invoice_details:
+                invoice_details.append((invoice_no, net_amount, invoice_date))
 
     """print(f"Invoice Nos: {invoice_nos}")
     print(f"Invoice Dates: {invoice_dates}")
@@ -329,51 +328,67 @@ def iD(pdf_path):
 
 
 
+import re
+import pytesseract
+from pdf2image import convert_from_path
+
 def mbc(pdf_path):
+    # Convert the PDF to images (assuming your existing logic)
     images = convert_from_path(pdf_path)
     images = [preprocess_image(image) for image in images]
     
-    # Using sets to store unique values
-    invoice_nos = set()
-    net_amounts = set()
-    invoice_dates = set()
+    # Initialize empty lists to store extracted values
+    invoice_nos = []
+    net_amounts = []
+    invoice_dates = []
+    invoice_details = []
 
+    # Define regex patterns
     invoice_no_pattern = r'Invoice\s*#:\s*(\d+)'
     net_amount_pattern = r'Total:\s*\$([\d,]+\.\d{2})'
-    invoice_date_pattern = r'Delivery\s*Date:\s*(\d{1,2}/\d{1,2}/\d{4})'
+    invoice_date_pattern = r'Delivery\s*Date:\s*(\d{1,2}/\d{1,2}/\d{4})'  # Matches 'Delivery Date: 8/19/2024'
 
+    # Iterate over each image (PDF page)
     for image in images:
-        # Convert image to string using pytesseract
+        # Convert image to text using pytesseract
         text = pytesseract.image_to_string(image)
 
-        # Search for patterns in the text and add unique values to sets
+        # Search for patterns and append extracted values to lists
         invoice_no_match = re.search(invoice_no_pattern, text)
         if invoice_no_match:
-            invoice_nos.add(invoice_no_match.group(1))
+            invoice_nos.append(invoice_no_match.group(1))
+        #print(invoice_nos)
 
         net_amount_match = re.search(net_amount_pattern, text)
         if net_amount_match:
-            net_amounts.add(net_amount_match.group(1))
+            net_amounts.append(net_amount_match.group(1))
+        #print(net_amounts)
 
         invoice_date_match = re.search(invoice_date_pattern, text)
         if invoice_date_match:
-            invoice_dates.add(invoice_date_match.group(1))
+            invoice_dates.append(invoice_date_match.group(1))
+        #print(invoice_dates)
+        for i, invoice_no in enumerate(invoice_nos):
+            net_amount = net_amounts[i] if i < len(net_amounts) else "Not found"
+            invoice_date = invoice_dates[i] if i < len(invoice_dates) else "Not found"
+            #print(i)
+            if (invoice_no, net_amount, invoice_date) not in invoice_details:
+                invoice_details.append((invoice_no, net_amount, invoice_date))
+            #print(invoice_details)
+    """invoice_nos = list(invoice_nos) if invoice_nos else ["Not found"]
+    net_amounts = list(net_amounts) if net_amounts else ["Not found"]
+    invoice_dates = list(invoice_dates) if invoice_dates else ["Not found"]
 
-    # Convert sets to lists for easier display
-    invoice_nos = list(invoice_nos) or ["Not found"]
-    net_amounts = list(net_amounts) or ["Not found"]
-    invoice_dates = list(invoice_dates) or ["Not found"]
 
+    # Create invoice details list
     invoice_details = [
-        {"Invoice No": invoice_no, "Invoice Date": invoice_date, "Net Amount": net_amount}
-        for invoice_no, invoice_date, net_amount in zip(invoice_nos, invoice_dates, net_amounts)
-    ]
-
-    """print(f"Invoice Nos: {invoice_nos}")
-    print(f"Invoice Dates: {invoice_dates}")
-    print(f"Balance Dues: ${net_amounts}")"""
+        {"Invoice No": invoice_no, "Delivery Date": delivery_date, "Total Amount": net_amount}
+        for invoice_no, delivery_date, net_amount in zip(invoice_nos, invoice_dates, net_amounts)
+    ]"""
 
     return invoice_details
+
+
 
 
 def rb(pdf_path):
@@ -381,9 +396,10 @@ def rb(pdf_path):
     images = [preprocess_image(image) for image in images]
 
     # Using sets to store unique values
-    invoice_nos = set()
-    net_amounts = set()
-    invoice_dates = set()
+    invoice_nos = []
+    net_amounts = []
+    invoice_dates = []
+    invoice_details = []
 
     invoice_no_pattern = r'Invoice\s*No\.\s*(\w+-\d+)'
     net_amount_pattern = r"Remaining\s*Balance\s*\$\s*([\d,]+\.\d{2})"
@@ -396,35 +412,28 @@ def rb(pdf_path):
         # Search for patterns in the text and add unique values to sets
         invoice_no_match = re.search(invoice_no_pattern, text)
         if invoice_no_match:
-            invoice_nos.add(invoice_no_match.group(1))
+            invoice_nos.append(invoice_no_match.group(1))
 
         net_amount_match = re.search(net_amount_pattern, text)
         if net_amount_match:
-            net_amounts.add(net_amount_match.group(1))
+            net_amounts.append(net_amount_match.group(1))
 
         invoice_date_match = re.search(invoice_date_pattern, text)
         if invoice_date_match:
-            invoice_dates.add(invoice_date_match.group(1))
+            invoice_dates.append(invoice_date_match.group(1))
 
     # Convert sets to lists for easier display
-    invoice_nos = list(invoice_nos) or ["Not found"]
-    net_amounts = list(net_amounts) or ["Not found"]
-    invoice_dates = list(invoice_dates) or ["Not found"]
-
-    invoice_details = [
-        {"Invoice No": invoice_no, "Invoice Date": invoice_date, "Net Amount": net_amount}
-        for invoice_no, invoice_date, net_amount in zip(invoice_nos, invoice_dates, net_amounts)
-    ]
-
-    """print(f"Invoice Nos: {invoice_nos}")
-    print(f"Invoice Dates: {invoice_dates}")
-    print(f"Balance Dues: ${net_amounts}")"""
-
+        for i, invoice_no in enumerate(invoice_nos):
+            net_amount = net_amounts[i] if i < len(net_amounts) else "Not found"
+            invoice_date = invoice_dates[i] if i < len(invoice_dates) else "Not found"
+            #print(i)
+            if (invoice_no, net_amount, invoice_date) not in invoice_details:
+                invoice_details.append((invoice_no, net_amount, invoice_date))
     return invoice_details
 
 
 # Main Input Handling Code
-"""inp = int(input(\"""1 for le Chef Bakery
+"""inp = int(input(\"""1 for Le Chef Bakery
 2 for Nature's Produce Online
 3 for Nature's Produce
 4 for Santa Monica Seafood
@@ -434,11 +443,11 @@ def rb(pdf_path):
 8 for Imperial Dade
 9 for Melrose Baking Company
 10 for Rockenwagner Bakery
-\\\"""))
+\"""))
 pdf_path = input("Enter PDF path: ")
 
 if inp == 1:
-    leChef1(pdf_path)
+    print(leChef1(pdf_path))
 elif inp == 2:
     natures_online(pdf_path)
 elif inp == 3:
@@ -460,4 +469,5 @@ elif inp == 10:
 else:
     print("Input is Invalid")
 
-#'/Users/reetvikchatterjee/Downloads/ifsSample118.pdf'"""
+'/Users/reetvikchatterjee/Downloads/ifsSample19.pdf'
+"""
